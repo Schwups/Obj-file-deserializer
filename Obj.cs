@@ -11,7 +11,9 @@ namespace obj_deserializer
         public string ObjectFilePath { get; protected set; }
         //property names derived from the Wavefront Obj file specification
         public string ObjectName { get; protected set; }
-        public List<float> v { get; protected set; }
+        public List<float[]> v { get; protected set; } //float arrays should have 3 values in form of x, y, z
+        public List<float[]> vt { get; protected set; }//float arrays should have 2 values in form of u, v
+        public List<float[]> vn { get; protected set; }//float arrays should have 3 values in form of i, j, k
         public List<Face> f { get; protected set; }
 
         public struct Face
@@ -32,13 +34,17 @@ namespace obj_deserializer
         public Obj(string fileLocation)
         {
             ObjectFilePath = fileLocation;
-            v = new List<float>();
+            v = new List<float[]>();
+            vt = new List<float[]>();
+            vn = new List<float[]>();
             f = new List<Face>();
         }
         private Obj() //only constructor setting the ObjectFilePath exposed to the program to prevent null values however this constructor is still valid
         {
             ObjectFilePath = null;
-            v = new List<float>();
+            v = new List<float[]>();
+            vt = new List<float[]>();
+            vn = new List<float[]>();
             f = new List<Face>();
         }
 
@@ -50,6 +56,18 @@ namespace obj_deserializer
         public void CreateFace(int v, int vt, int vn)
         {
             f.Add(new Face(v, vt, vn));
+        }
+        public void AddVertex(float x, float y, float z)
+        {
+            v.Add(new float[3] { x, y, z });
+        }
+        public void AddTextureVertex(float u, float v)
+        {
+            vt.Add(new float[2] { u, v });
+        }
+        public void AddVertexNormal(float i, float j, float k)
+        {
+            vn.Add(new float[3] { i, j, k });
         }
     }
 
@@ -67,7 +85,7 @@ namespace obj_deserializer
                     while (SR.Peek() != -1)
                     {
                         string currentLine = SR.ReadLine().Trim();
-                        string key = currentLine.Substring(0, currentLine.IndexOf(' '));
+                        string key = currentLine.Substring(0, currentLine.IndexOf(' ')).ToLower();
                         currentLine = currentLine.Substring(currentLine.IndexOf(' ') + 1);
 
                         switch (key)
@@ -85,27 +103,47 @@ namespace obj_deserializer
                                         //invalid vertex
                                         break;
                                     }
-
-                                    List<float> floats = new List<float>();
-                                    foreach (string s in values)
+                                    List<float> floatValues = ExtractFloats(values);
+                                    if (floatValues == null)
                                     {
-                                        bool parseSucess = float.TryParse(s, out float floatValue);
-                                        if (!parseSucess)
-                                        {
-                                            //invalid float
-                                            break;
-                                        }
-                                        floats.Add(floatValue);
-                                    }
-                                    if (floats.Count != 3)
-                                    {
-                                        //line read faliure
+                                        //error while extracting floats
                                         break;
                                     }
-                                    foreach (float f in floats)
+                                    obj.AddVertex(floatValues[0], floatValues[1], floatValues[2]);
+                                    break;
+                                }
+                            case "vt":
+                                {
+                                    string[] values = currentLine.Split(' ');
+                                    if (values.Length != 2)
                                     {
-                                        obj.v.Add(f);
+                                        //invalid texture vertex
+                                        break;
                                     }
+                                    List<float> floatValues = ExtractFloats(values);
+                                    if (floatValues == null)
+                                    {
+                                        //error while extracting floats
+                                        break;
+                                    }
+                                    obj.AddTextureVertex(floatValues[0], floatValues[1]);
+                                    break;
+                                }
+                            case "vn":
+                                {
+                                    string[] values = currentLine.Split(' ');
+                                    if (values.Length != 3)
+                                    {
+                                        //invalid vertex normal
+                                        break;
+                                    }
+                                    List<float> floatValues = ExtractFloats(values);
+                                    if (floatValues == null)
+                                    {
+                                        //error while extracting floats
+                                        break;
+                                    }
+                                    obj.AddVertexNormal(floatValues[0], floatValues[1], floatValues[2]);
                                     break;
                                 }
                             case "f":
@@ -155,6 +193,36 @@ namespace obj_deserializer
                                     }
                                     break;
                                 }
+
+                            List<float> ExtractFloats(string[] values)
+                            {
+                                if  (values == null)
+                                {
+                                    return null;
+                                }
+                                List<float> floatValues = new List<float>();
+                                foreach (string v in values)
+                                {
+                                    bool parseSucess = float.TryParse(v, out float floatValue);
+                                    if (!parseSucess)
+                                    {
+                                        //invalid float
+                                        return null;
+                                    }
+                                    floatValues.Add(floatValue);
+                                }
+                                if (floatValues.Count != values.Length)
+                                {
+                                    //error while adding floats to list
+                                    Debug.WriteLine("Error while extracting floats");
+                                    throw new ApplicationException("Error while extracting floats");
+                                    /*
+                                     * program throws exception here instead of just failing because theoretically the only way this if statement is true is due to 
+                                     * an issue in the previous foreach statement and should never occour due to an erronious input into the subroutine
+                                    */ 
+                                }
+                                return floatValues;
+                            }
                         }
 
                     }
