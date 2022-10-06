@@ -26,15 +26,9 @@ namespace obj_deserializer
                 Console.Write($"{f[0]} {f[1]} {f[2]}\n");
             } 
             Console.Write("\nfaces:\n");
-            int i = 0;
-            foreach (Obj.Face f in test.f)
+            foreach (int[][] f in test.f)
             {
-                i++;
-                Console.Write($"{f.v}/{f.vt}/{f.vn} ");
-                if (i % 3 == 0)
-                {
-                    Console.Write("\n");
-                }
+                Console.Write($"{f[0][0]}/{f[0][1]}/{f[0][2]} {f[1][0]}/{f[1][1]}/{f[1][2]} {f[2][0]}/{f[2][1]}/{f[2][2]}\n");
             }
             Console.ReadLine();
         }
