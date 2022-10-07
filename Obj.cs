@@ -3,10 +3,12 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 
-namespace obj_deserializer
+namespace Obj_Class
 {
-    class Obj
+    public class Obj : IDisposable
     {
+        private bool disposedValue;
+
         //Properties
         public string ObjectFilePath { get; protected set; }
         //property names derived from the Wavefront Obj file specification
@@ -33,7 +35,6 @@ namespace obj_deserializer
             vn = new List<float[]>();
             f = new List<int[][]>();
         }
-
         //Methods
         public void SetName(string name)
         {
@@ -59,18 +60,49 @@ namespace obj_deserializer
         {
             vn.Add(new float[3] { i, j, k });
         }
-    }
 
-    class ObjDeserializer
-    {
-        public static Obj Deserialize(string fileLocation)
+        //IDisposible Implementation added to be able to free up memory when a large obj Object is no longer needed
+        protected virtual void Dispose(bool disposing)
         {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    ObjectFilePath = null;
+                    ObjectName = null;
+                    v = null;
+                    vt = null;
+                    vn = null;
+                    f = null;
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+            GC.Collect();
+        }
+    }
+}
+
+namespace Obj_Deserializer
+{
+    public class ObjDeserializer
+    {
+        public static Obj_Class.Obj Deserialize(string fileLocation)
+        {
+            Debug.WriteLine("Obj Deserializer:");
+            Debug.Indent();
             try
             {
-                Obj obj;
+                Obj_Class.Obj obj;
                 using (StreamReader SR = new StreamReader(fileLocation))
                 {
-                    obj = new Obj(fileLocation);
+                    obj = new Obj_Class.Obj(fileLocation);
 
                     while (SR.Peek() != -1)
                     {
@@ -170,6 +202,7 @@ namespace obj_deserializer
                                             {
                                                 //error while extracting faces
                                                 Debug.WriteLine("error while extracting faces");
+                                                Debug.Unindent();
                                                 throw new ApplicationException("Error while extracting faces");
                                                 //see comment in ExtractFloats Subroutine
                                             }
@@ -184,7 +217,6 @@ namespace obj_deserializer
                                     obj.CreateFace(faceDataList[0], faceDataList[1], faceDataList[2]);
                                     break;
                                 }
-
                             List<float> ExtractFloats(string[] values)
                             {
                                 if  (values == null)
@@ -206,6 +238,7 @@ namespace obj_deserializer
                                 {
                                     //error while adding floats to list
                                     Debug.WriteLine("Error while extracting floats");
+                                    Debug.Unindent();
                                     throw new ApplicationException("Error while extracting floats");
                                     /*
                                      * program throws exception here instead of just failing because theoretically the only way this if statement is true is due to 
@@ -215,16 +248,16 @@ namespace obj_deserializer
                                 return floatValues;
                             }
                         }
-
                     }
-
-
+                    Debug.WriteLine("Deserialized without issue");
+                    Debug.Unindent();
                     return obj;
                 }
             }
             catch (System.IO.FileNotFoundException)
             {
                 Debug.WriteLine("Requested file not found");
+                Debug.Unindent();
                 throw;
             }
         }
