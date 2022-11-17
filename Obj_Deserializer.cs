@@ -1,93 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-
-namespace Obj_Class
-{
-    public class Obj : IDisposable
-    {
-        private bool disposedValue;
-
-        //Properties
-        public string ObjectFilePath { get; protected set; }
-        //property names derived from the Wavefront Obj file specification
-        public string ObjectName { get; protected set; }
-        public List<float[]> v { get; protected set; } //vertex float arrays should have 3 values in form of x, y, z
-        public List<float[]> vt { get; protected set; }//texture vertex float arrays should have 2 values in form of u, v
-        public List<float[]> vn { get; protected set; }//vertex normal float arrays should have 3 values in form of i, j, k
-        public List<int[][]> f { get; protected set; }//face int 2d arrays should have 3 arrays each containing 3 values in the form v,vt,vn
-
-        //Constructors
-        public Obj(string fileLocation)
-        {
-            ObjectFilePath = fileLocation;
-            v = new List<float[]>();
-            vt = new List<float[]>();
-            vn = new List<float[]>();
-            f = new List<int[][]>();
-        }
-        private Obj() //only constructor setting the ObjectFilePath exposed to the program to prevent null values however this constructor is still valid
-        {
-            ObjectFilePath = null;
-            v = new List<float[]>();
-            vt = new List<float[]>();
-            vn = new List<float[]>();
-            f = new List<int[][]>();
-        }
-        //Methods
-        public void SetName(string name)
-        {
-            ObjectName = name;
-        }
-        public void CreateFace(int[] f1, int[] f2, int[] f3)
-        {
-            int[][] newFace = new int[3][];
-            newFace[0] = f1;
-            newFace[1] = f2;
-            newFace[2] = f3;
-            f.Add(newFace);
-        }
-        public void AddVertex(float x, float y, float z)
-        {
-            v.Add(new float[3] { x, y, z });
-        }
-        public void AddTextureVertex(float u, float v)
-        {
-            vt.Add(new float[2] { u, v });
-        }
-        public void AddVertexNormal(float i, float j, float k)
-        {
-            vn.Add(new float[3] { i, j, k });
-        }
-
-        //IDisposible Implementation added to be able to free up memory when a large obj Object is no longer needed
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    ObjectFilePath = null;
-                    ObjectName = null;
-                    v = null;
-                    vt = null;
-                    vn = null;
-                    f = null;
-                }
-                disposedValue = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-            GC.Collect();
-        }
-    }
-}
 
 namespace Obj_Deserializer
 {
@@ -99,6 +13,11 @@ namespace Obj_Deserializer
             Debug.Indent();
             try
             {
+                if (fileLocation.Substring(fileLocation.LastIndexOf('.')).ToLower() != ".obj")
+                {
+                    Debug.WriteLine("Invalid Filetype");
+                    throw new InvalidDataException($"File at location {fileLocation} is not a .obj file");
+                }
                 Obj_Class.Obj obj;
                 using (StreamReader SR = new StreamReader(fileLocation))
                 {
@@ -107,7 +26,12 @@ namespace Obj_Deserializer
                     while (SR.Peek() != -1)
                     {
                         string currentLine = SR.ReadLine().Trim();
-                        string key = currentLine.Substring(0, currentLine.IndexOf(' ')).ToLower();
+                        int IndexOfSpace = currentLine.IndexOf(' ');
+                        if (IndexOfSpace == -1)
+                        {
+                            continue;
+                        }
+                        string key = currentLine.Substring(0, IndexOfSpace).ToLower();
                         currentLine = currentLine.Substring(currentLine.IndexOf(' ') + 1);
 
                         switch (key)
@@ -198,7 +122,7 @@ namespace Obj_Deserializer
                                                     intData[i] = Convert.ToInt32(data[i]);
                                                 }
                                             }
-                                            if(intData.Length != 3)
+                                            if (intData.Length != 3)
                                             {
                                                 //error while extracting faces
                                                 Debug.WriteLine("error while extracting faces");
@@ -217,36 +141,36 @@ namespace Obj_Deserializer
                                     obj.CreateFace(faceDataList[0], faceDataList[1], faceDataList[2]);
                                     break;
                                 }
-                            List<float> ExtractFloats(string[] values)
-                            {
-                                if  (values == null)
+                                List<float> ExtractFloats(string[] values)
                                 {
-                                    return null;
-                                }
-                                List<float> floatValues = new List<float>();
-                                foreach (string v in values)
-                                {
-                                    bool parseSucess = float.TryParse(v, out float floatValue);
-                                    if (!parseSucess)
+                                    if (values == null)
                                     {
-                                        //invalid float
                                         return null;
                                     }
-                                    floatValues.Add(floatValue);
+                                    List<float> floatValues = new List<float>();
+                                    foreach (string v in values)
+                                    {
+                                        bool parseSucess = float.TryParse(v, out float floatValue);
+                                        if (!parseSucess)
+                                        {
+                                            //invalid float
+                                            return null;
+                                        }
+                                        floatValues.Add(floatValue);
+                                    }
+                                    if (floatValues.Count != values.Length)
+                                    {
+                                        //error while adding floats to list
+                                        Debug.WriteLine("Error while extracting floats");
+                                        Debug.Unindent();
+                                        throw new ApplicationException("Error while extracting floats");
+                                        /*
+                                         * program throws exception here instead of just failing because theoretically the only way this if statement is true is due to 
+                                         * an issue in the previous foreach statement and should never occour due to an erronious input into the subroutine
+                                        */
+                                    }
+                                    return floatValues;
                                 }
-                                if (floatValues.Count != values.Length)
-                                {
-                                    //error while adding floats to list
-                                    Debug.WriteLine("Error while extracting floats");
-                                    Debug.Unindent();
-                                    throw new ApplicationException("Error while extracting floats");
-                                    /*
-                                     * program throws exception here instead of just failing because theoretically the only way this if statement is true is due to 
-                                     * an issue in the previous foreach statement and should never occour due to an erronious input into the subroutine
-                                    */ 
-                                }
-                                return floatValues;
-                            }
                         }
                     }
                     Debug.WriteLine("Deserialized without issue");

@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{7265DD9C-AE20-4B9A-80A3-E3282FF8A6BF}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>Obj</RootNamespace>
+    <RootNamespace>Obj_Class</RootNamespace>
     <AssemblyName>obj deserializer</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -61,8 +61,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Obj.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="Obj_Deserializer.cs" />
+    <Compile Include="Obj_Class.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
