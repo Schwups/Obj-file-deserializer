@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-
+ 
 namespace Obj_Deserializer
 {
     public class ObjDeserializer
